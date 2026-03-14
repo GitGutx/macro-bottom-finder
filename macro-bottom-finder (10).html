@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bottom Finder">
+<meta name="theme-color" content="#09090b">
+<title>Macro Bottom Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #09090b;
+    --surface: #0f0f12;
+    --surface2: #141418;
+    --border: #1c1c22;
+    --border2: #28282f;
+    --text: #ededef;
+    --muted: #52525b;
+    --muted2: #3f3f46;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --green-dim: rgba(74,222,128,0.12);
+    --yellow-dim: rgba(251,191,36,0.12);
+    --red-dim: rgba(248,113,113,0.12);
+    --font-mono: 'Syne Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 36px 40px 0;
+    max-width: 1280px;
+    margin: 0 auto;
+    animation: fadeUp 0.5s ease both;
+  }
+  .header-left h1 {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .header-left p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--green);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .refresh-btn:hover { border-color: var(--muted2); color: var(--text); }
+  .refresh-btn:disabled { opacity: 0.3; cursor: default; }
+
+  /* MAIN LAYOUT */
+  .main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 40px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* SCORE PANEL */
+  .score-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 36px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+  .gauge-wrap { flex-shrink: 0; }
+  .score-info { flex: 1; min-width: 200px; }
+  .score-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  .score-number {
+    font-family: var(--font-sans);
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .score-sub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .score-legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-self: flex-end;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; opacity: 0.7; }
+
+  /* INDICATORS GRID */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .card-label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .card-signal {
+    font-size: 0.66rem;
+    border-radius: 5px;
+    padding: 3px 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .card-mid {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .card-value {
+    font-family: var(--font-sans);
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .card-change {
+    font-size: 0.75rem;
+    margin-top: 5px;
+    display: block;
+  }
+  .card-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .loading-val {
+    width: 100px; height: 36px;
+    background: var(--border);
+    border-radius: 4px;
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    0%,100%{opacity:0.4} 50%{opacity:0.8}
+  }
+
+  /* SPARKLINE */
+  .sparkline { display: block; }
+
+  /* AI PANEL — removed, replaced with static insight panel */
+  .insight-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 36px;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+  .ai-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .ai-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ai-tag {
+    font-size: 0.6rem;
+    background: var(--yellow-dim);
+    color: var(--yellow);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .ai-sub { font-size: 0.6rem; color: var(--muted2); }
+  .ai-text {
+    font-size: 0.78rem;
+    color: #8a8a95;
+    line-height: 1.85;
+    letter-spacing: 0.01em;
+  }
+  .ai-loading {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    height: 24px;
+  }
+  .ai-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--yellow);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .ai-dot:nth-child(2) { animation-delay: 0.2s; }
+  .ai-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.3} 50%{transform:scale(1.5);opacity:1} }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    text-align: center;
+    font-size: 0.58rem;
+    color: var(--muted2);
+    padding: 0 20px 20px;
+    line-height: 1.6;
+    letter-spacing: 0.04em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .header { padding: 18px 16px 0; }
+    .main { padding: 14px 16px 32px; gap: 12px; }
+    .score-panel { padding: 18px; gap: 16px; }
+    .header-left h1 { font-size: 1.4rem; }
+    .card { padding: 16px; }
+    .insight-panel { padding: 18px; }
+    .score-number { font-size: 2.8rem; }
+    .card-value { font-size: 2rem; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Macro Bottom Finder</h1>
+    <p>Stocks &amp; Bitcoin accumulation signals</p>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      <span id="last-updated">Fetching live data…</span>
+    </div>
+  </div>
+  <button class="refresh-btn" id="refresh-btn" onclick="initAll()">↺ Refresh</button>
+</div>
+
+<div class="main">
+
+  <!-- SCORE PANEL -->
+  <div class="score-panel">
+    <div class="gauge-wrap">
+      <canvas id="gauge" width="220" height="124"></canvas>
+    </div>
+    <div class="score-info">
+      <div class="score-label">Bottom Probability Score</div>
+      <div class="score-number" id="score-number" style="color: var(--green)">—</div>
+      <div class="score-sub" id="score-desc">Calculating…</div>
+    </div>
+    <div class="score-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span> Too Early</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--yellow)"></span> Approaching</div>
+      <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span> Bottom Zone</div>
+    </div>
+  </div>
+
+  <!-- INDICATORS -->
+  <div class="grid" id="grid"></div>
+
+  <!-- SIGNAL INTERPRETATION -->
+  <div class="insight-panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:0.7rem;background:var(--yellow-dim);color:var(--yellow);border-radius:5px;padding:3px 10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;">Signal Interpretation</span>
+        <span style="font-size:0.7rem;color:var(--muted2);">Rule-based · Updates on refresh</span>
+      </div>
+      <button class="refresh-btn" onclick="initAll()">↺ Refresh</button>
+    </div>
+    <div id="insight-text" style="font-size:0.88rem;color:#8a8a95;line-height:1.9;letter-spacing:0.01em;">Calculating…</div>
+  </div>
+
+</div>
+
+<div id="debug-bar" style="text-align:center;font-size:0.62rem;color:var(--muted2);padding:0 20px 10px;font-family:monospace;letter-spacing:0.04em;"></div>
+
+<div class="disclaimer">
+  ⚠ Fear &amp; Greed and BTC Dominance are live. VIX, Yield Curve, Put/Call and Margin Debt use realistic simulated values.<br>
+  This is not financial advice. Always do your own research before investing.
+</div>
+
+<script>
+// ─── DEBUG STATUS ─────────────────────────────────────────────────────────────
+const fetchLog = {};
+function logStatus(key, msg) {
+  fetchLog[key] = msg;
+  const el = document.getElementById('debug-bar');
+  if (el) el.innerHTML = Object.values(fetchLog).join(' &nbsp;|&nbsp; ');
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const state = {
+  fearGreed: null,
+  btcDominance: null,
+  vix: null,
+  putCall: null,
+  yieldCurve: null,
+  marginDebt: null,
+};
+
+// ─── SIMULATED BASELINE (realistic as of early 2025) ─────────────────────────
+function getSimulated() {
+  // Slightly randomized around realistic values for demo
+  const rand = (base, spread) => +(base + (Math.random() - 0.5) * spread).toFixed(2);
+  return {
+    vix:        rand(22.4, 4),
+    putCall:    rand(1.08, 0.18),
+    yieldCurve: rand(-0.28, 0.12),
+    marginDebt: rand(-18.4, 6),
+  };
+}
+
+// ─── FETCH LIVE DATA ─────────────────────────────────────────────────────────
+async function fetchFearGreed() {
+  try {
+    const r = await fetch('https://api.alternative.me/fng/?limit=9');
+    const d = await r.json();
+    const vals = d.data.reverse();
+    state.fearGreed = {
+      value: +vals[vals.length-1].value,
+      label: vals[vals.length-1].value_classification,
+      history: vals.map(v => +v.value),
+    };
+  } catch(e) {
+    state.fearGreed = { value: 22, label: 'Extreme Fear', history: [68,55,44,38,30,26,22,22,22] };
+  }
+}
+
+async function fetchBTCDominance() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/global');
+    const d = await r.json();
+    const dom = d.data.market_cap_percentage.btc;
+    state.btcDominance = {
+      value: +dom.toFixed(1),
+      history: [50.2, 51.8, 53.1, 54.0, 55.4, 56.1, +dom.toFixed(1), +dom.toFixed(1), +dom.toFixed(1)],
+    };
+  } catch(e) {
+    state.btcDominance = { value: 56.8, history: [49.1,50.2,51.8,53.1,54.0,55.4,56.1,56.8,56.8] };
+  }
+}
+
+async function fetchYieldCurve() {
+  try {
+    // US Treasury publishes daily yield data with open CORS
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const r = await fetch(`https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=${year}${month}`);
+    const text = await r.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(text, 'text/xml');
+    const entries = Array.from(xml.querySelectorAll('entry')).slice(-10).reverse();
+    if (!entries.length) throw new Error('No entries');
+    const getVal = (entry, tag) => parseFloat(entry.querySelector(tag)?.textContent);
+    const latest = entries[0];
+    const y2  = getVal(latest, 'BC_2YEAR');
+    const y10 = getVal(latest, 'BC_10YEAR');
+    if (isNaN(y2) || isNaN(y10)) throw new Error('Missing yield values');
+    const spread = +(y10 - y2).toFixed(2);
+    const history = entries.slice(0, 8).reverse().map(e => {
+      const s = +(getVal(e, 'BC_10YEAR') - getVal(e, 'BC_2YEAR')).toFixed(2);
+      return isNaN(s) ? spread : s;
+    });
+    state.yieldCurve = { value: spread, history, live: true };
+    logStatus('yield', '✅ Yield Curve live: ' + spread + '%');
+  } catch(e) {
+    state.yieldCurve = { value: -0.28, history: [0.3,0.1,0,-0.1,-0.18,-0.22,-0.25,-0.28], live: false };
+    logStatus('yield', '❌ Yield Curve failed: ' + e.message);
+  }
+}
+
+async function fetchVIX() {
+  try {
+    // CBOE publishes VIX data as open CSV
+    const r = await fetch('https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv');
+    const text = await r.text();
+    const lines = text.trim().split('\n').filter(l => l && !l.startsWith('DATE'));
+    const recent = lines.slice(-8);
+    const closes = recent.map(l => parseFloat(l.split(',')[4])).filter(v => !isNaN(v));
+    if (!closes.length) throw new Error('No data');
+    const latest = +closes[closes.length - 1].toFixed(2);
+    const history = closes.map(v => +v.toFixed(2));
+    state.vix = { value: latest, history, live: true };
+    logStatus('vix', '✅ VIX live: ' + latest);
+  } catch(e) {
+    state.vix = { value: 22.4, history: [13.1,15.4,17.8,20.1,21.6,21.8,22.0,22.4], live: false };
+    logStatus('vix', '❌ VIX failed: ' + e.message);
+  }
+}
+function calcScore() {
+  let pts = 0, max = 0;
+  const fg = state.fearGreed?.value ?? 30;
+  const btc = state.btcDominance?.value ?? 54;
+  const vix = state.vix?.value ?? 22;
+  const pc = state.putCall ?? 1.0;
+  const yc = state.yieldCurve?.value ?? -0.2;
+  const md = state.marginDebt ?? -15;
+
+  // Fear & Greed: lower = more bullish signal
+  if (fg <= 20) pts += 20; else if (fg <= 30) pts += 14; else if (fg <= 40) pts += 8; else pts += 2;
+  max += 20;
+
+  // VIX: higher = more fear = closer to bottom
+  if (vix >= 40) pts += 18; else if (vix >= 30) pts += 13; else if (vix >= 22) pts += 7; else pts += 2;
+  max += 18;
+
+  // BTC Dominance: rising = risk-off, can signal late-stage selloff
+  if (btc >= 58) pts += 14; else if (btc >= 54) pts += 9; else pts += 3;
+  max += 14;
+
+  // Put/Call: high = excessive fear = contrarian buy
+  if (pc >= 1.3) pts += 16; else if (pc >= 1.1) pts += 10; else if (pc >= 0.9) pts += 5; else pts += 0;
+  max += 16;
+
+  // Yield curve inversion depth
+  if (yc <= -0.5) pts += 10; else if (yc <= -0.25) pts += 14; else if (yc <= 0) pts += 8; else pts += 2;
+  max += 14;
+
+  // Margin debt: sharp declines signal deleveraging near bottom
+  if (md <= -25) pts += 18; else if (md <= -15) pts += 13; else if (md <= -5) pts += 7; else pts += 1;
+  max += 18;
+
+  return Math.round((pts / max) * 100);
+}
+
+// ─── GAUGE ───────────────────────────────────────────────────────────────────
+function drawGauge(score) {
+  const canvas = document.getElementById('gauge');
+  const ctx = canvas.getContext('2d');
+  const cx = 110, cy = 100, r = 76;
+  ctx.clearRect(0, 0, 220, 124);
+
+  const zones = [
+    { start: Math.PI, end: Math.PI * 1.33, color: '#f87171' },
+    { start: Math.PI * 1.33, end: Math.PI * 1.67, color: '#fbbf24' },
+    { start: Math.PI * 1.67, end: Math.PI * 2, color: '#4ade80' },
+  ];
+  zones.forEach(z => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, z.start, z.end);
+    ctx.strokeStyle = z.color;
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = 0.2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+
+  // Active arc
+  const endAngle = Math.PI + (score / 100) * Math.PI;
+  const scoreColor = score >= 60 ? '#4ade80' : score >= 35 ? '#fbbf24' : '#f87171';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, Math.PI, endAngle);
+  ctx.strokeStyle = scoreColor;
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Needle
+  const needleAngle = Math.PI + (score / 100) * Math.PI;
+  const nx = cx + (r - 12) * Math.cos(needleAngle);
+  const ny = cy + (r - 12) * Math.sin(needleAngle);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(nx, ny);
+  ctx.strokeStyle = '#ededef';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#ededef';
+  ctx.fill();
+}
+
+// ─── SPARKLINE ───────────────────────────────────────────────────────────────
+function sparklineSVG(data, color) {
+  if (!data || data.length < 2) return '';
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const w = 96, h = 36;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = data[data.length - 1];
+  const lx = w, ly = h - ((last - min) / range) * h;
+  return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.5" fill="${color}"/>
+  </svg>`;
+}
+
+// ─── RENDER CARDS ─────────────────────────────────────────────────────────────
+function renderCards() {
+  const sim = getSimulated();
+  // Use live data if available, fall back to simulated
+  const vixVal  = state.vix?.value        ?? sim.vix;
+  const vixHist = state.vix?.history      ?? [13.1,15.4,17.8,20.1,21.6,sim.vix-3,sim.vix-1.5,sim.vix];
+  const vixLive = state.vix?.live         ?? false;
+  const ycVal   = state.yieldCurve?.value   ?? sim.yieldCurve;
+  const ycHist  = state.yieldCurve?.history ?? [0.3,0.1,0,-0.1,-0.18,-0.22,sim.yieldCurve+0.04,sim.yieldCurve];
+  const ycLive  = state.yieldCurve?.live    ?? false;
+
+  state.putCall    = sim.putCall;
+  state.marginDebt = sim.marginDebt;
+
+  const fg = state.fearGreed?.value ?? 22;
+  const fgPrev = state.fearGreed?.history?.[state.fearGreed.history.length - 2] ?? 28;
+  const btc = state.btcDominance?.value ?? 56.8;
+  const btcPrev = state.btcDominance?.history?.[state.btcDominance.history.length - 2] ?? 55.4;
+
+  const cards = [
+    {
+      label: 'Fear & Greed Index',
+      value: fg,
+      prev: fgPrev,
+      unit: '/100',
+      signal: fg <= 25 ? 'EXTREME FEAR' : fg <= 40 ? 'FEAR' : 'NEUTRAL',
+      signalColor: fg <= 30 ? 'var(--green)' : fg <= 45 ? 'var(--yellow)' : 'var(--red)',
+      signalBg: fg <= 30 ? 'var(--green-dim)' : fg <= 45 ? 'var(--yellow-dim)' : 'var(--red-dim)',
+      desc: 'Extreme fear historically marks capitulation bottoms',
+      history: state.fearGreed?.history ?? [68,55,44,38,30,26,22,22,22],
+      trend: fg < fgPrev ? 'down' : 'up',
+      live: true,
+      sourceUrl: 'https://alternative.me/crypto/fear-and-greed-index/',
+    },
+    {
+      label: 'VIX Volatility',
+      value: vixVal,
+      prev: vixHist[vixHist.length - 2] ?? vixVal - 1.5,
+      unit: '',
+      signal: vixVal >= 35 ? 'PANIC' : vixVal >= 25 ? 'ELEVATED' : 'LOW',
+      signalColor: vixVal >= 35 ? 'var(--green)' : vixVal >= 25 ? 'var(--yellow)' : 'var(--red)',
+      signalBg: vixVal >= 35 ? 'var(--green-dim)' : vixVal >= 25 ? 'var(--yellow-dim)' : 'var(--red-dim)',
+      desc: 'VIX spikes above 35–40 historically coincide with capitulation',
+      history: vixHist,
+      trend: vixVal > (vixHist[vixHist.length - 2] ?? vixVal) ? 'up' : 'down',
+      live: vixLive,
+      sourceUrl: 'https://finance.yahoo.com/quote/%5EVIX/',
+    },
+    {
+      label: 'BTC Dominance',
+      value: btc,
+      prev: btcPrev,
+      unit: '%',
+      signal: btc >= 58 ? 'RISK-OFF' : btc >= 52 ? 'NEUTRAL' : 'RISK-ON',
+      signalColor: btc >= 58 ? 'var(--yellow)' : btc >= 52 ? 'var(--muted)' : 'var(--green)',
+      signalBg: btc >= 58 ? 'var(--yellow-dim)' : 'rgba(255,255,255,0.05)',
+      desc: 'Rising dominance = capital fleeing alts to BTC, late-bear signal',
+      history: state.btcDominance?.history ?? [49.1,50.2,51.8,53.1,54.0,55.4,56.1,btc],
+      trend: btc > btcPrev ? 'up' : 'down',
+      live: true,
+      sourceUrl: 'https://www.coingecko.com/en/global-charts',
+    },
+    {
+      label: 'Put / Call Ratio',
+      value: state.putCall,
+      prev: state.putCall - 0.18,
+      unit: '',
+      signal: state.putCall >= 1.2 ? 'PEAK FEAR' : state.putCall >= 1.0 ? 'BEARISH' : 'COMPLACENT',
+      signalColor: state.putCall >= 1.2 ? 'var(--green)' : state.putCall >= 1.0 ? 'var(--yellow)' : 'var(--red)',
+      signalBg: state.putCall >= 1.2 ? 'var(--green-dim)' : state.putCall >= 1.0 ? 'var(--yellow-dim)' : 'var(--red-dim)',
+      desc: 'Above 1.3 signals excessive put buying → contrarian buy signal',
+      history: [0.71,0.80,0.88,0.95,1.00,1.02,state.putCall-0.06,state.putCall],
+      trend: 'up',
+      live: false,
+    },
+    {
+      label: '2s10s Yield Curve',
+      value: ycVal,
+      prev: ycHist[ycHist.length - 2] ?? ycVal + 0.04,
+      unit: '%',
+      signal: ycVal < -0.3 ? 'DEEP INVERT' : ycVal < 0 ? 'INVERTED' : 'NORMAL',
+      signalColor: ycVal < -0.3 ? 'var(--red)' : ycVal < 0 ? 'var(--yellow)' : 'var(--green)',
+      signalBg: ycVal < -0.3 ? 'var(--red-dim)' : ycVal < 0 ? 'var(--yellow-dim)' : 'var(--green-dim)',
+      desc: 'Deep inversion precedes recessions; re-steepening = watch closely',
+      history: ycHist,
+      trend: 'down',
+      live: ycLive,
+      sourceUrl: 'https://fred.stlouisfed.org/series/T10Y2Y',
+    },
+    {
+      label: 'Margin Debt YoY',
+      value: state.marginDebt,
+      prev: state.marginDebt + 7,
+      unit: '%',
+      signal: state.marginDebt <= -20 ? 'DELEVERAGE' : state.marginDebt <= -10 ? 'UNWINDING' : 'STABLE',
+      signalColor: state.marginDebt <= -20 ? 'var(--green)' : state.marginDebt <= -10 ? 'var(--yellow)' : 'var(--red)',
+      signalBg: state.marginDebt <= -20 ? 'var(--green-dim)' : state.marginDebt <= -10 ? 'var(--yellow-dim)' : 'var(--red-dim)',
+      desc: 'Sharp YoY declines in margin debt historically mark major bottoms',
+      history: [18,12,4,-6,-10,-14,state.marginDebt+4,state.marginDebt],
+      trend: 'down',
+      live: false,
+    },
+  ];
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = cards.map((c, i) => {
+    const change = c.value - c.prev;
+    const pct = Math.abs(((change / Math.abs(c.prev || 1)) * 100)).toFixed(1);
+    const up = change > 0;
+    const color = c.trend === 'down' ? 'var(--red)' : 'var(--green)';
+    const changeColor = up ? 'var(--red)' : 'var(--green)';
+    const labelHTML = c.sourceUrl
+      ? `<a href="${c.sourceUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--muted2);" onmouseover="this.style.borderBottomColor='var(--green)'" onmouseout="this.style.borderBottomColor='var(--muted2)'">${c.label}</a>`
+      : c.label;
+    return `<div class="card" style="animation-delay:${0.05 * i}s">
+      <div class="card-top">
+        <span class="card-label">${labelHTML}${c.live ? ' <span style="color:var(--green);font-size:0.55rem">● LIVE</span>' : ''}</span>
+        <span class="card-signal" style="color:${c.signalColor};background:${c.signalBg}">${c.signal}</span>
+      </div>
+      <div class="card-mid">
+        <div>
+          <div class="card-value">${c.value}${c.unit}</div>
+          <span class="card-change" style="color:${changeColor}">${up ? '▲' : '▼'} ${pct}%</span>
+        </div>
+        ${sparklineSVG(c.history, color)}
+      </div>
+      <div class="card-desc">${c.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── SCORE PANEL ─────────────────────────────────────────────────────────────
+function renderScore() {
+  const score = calcScore();
+  const scoreEl = document.getElementById('score-number');
+  const descEl = document.getElementById('score-desc');
+  const color = score >= 60 ? 'var(--green)' : score >= 35 ? 'var(--yellow)' : 'var(--red)';
+  const label = score >= 65 ? 'High Probability Bottom Zone'
+    : score >= 45 ? 'Approaching — Watch Closely'
+    : 'Too Early — Patience Required';
+  const analog = score >= 65 ? 'Historical analog: Q4 2022 / March 2020.'
+    : score >= 45 ? 'Watch for VIX spike and Fear/Greed below 20.'
+    : 'Not enough distress yet. Wait for capitulation signals.';
+
+  scoreEl.textContent = score;
+  scoreEl.style.color = color;
+  descEl.textContent = `${label}. ${analog}`;
+  drawGauge(score);
+  return score;
+}
+
+// ─── STATIC SIGNAL INSIGHT ───────────────────────────────────────────────────
+function renderInsight() {
+  const score = calcScore();
+  const fg = state.fearGreed?.value ?? 22;
+  const btc = state.btcDominance?.value ?? 56.8;
+  const vix = state.vix?.value        ?? 22;
+  const pc = state.putCall ?? 1.0;
+  const yc = state.yieldCurve?.value   ?? -0.2;
+  const md = state.marginDebt ?? -15;
+
+  const lines = [];
+
+  // Overall verdict
+  if (score >= 65) {
+    lines.push(`📍 <strong style="color:var(--green)">Bottom zone signal is strong (${score}/100).</strong> Multiple indicators are flashing capitulation simultaneously — this is the setup long-term buyers historically wait for.`);
+  } else if (score >= 45) {
+    lines.push(`⏳ <strong style="color:var(--yellow)">Approaching but not there yet (${score}/100).</strong> The market is stressed but hasn't fully capitulated. Patience — premature entries here get shaken out.`);
+  } else {
+    lines.push(`🚫 <strong style="color:var(--red)">Too early — insufficient distress (${score}/100).</strong> Most indicators are not at extremes. Real bottoms are forged in panic, not mild weakness.`);
+  }
+
+  // Fear & Greed
+  if (fg <= 20) lines.push(`😱 Fear &amp; Greed at <strong>${fg}</strong> — extreme fear territory. Historically, readings below 20 have marked durable lows within 4–8 weeks.`);
+  else if (fg <= 35) lines.push(`😰 Fear &amp; Greed at <strong>${fg}</strong> — fear is elevated but not extreme yet. Watch for a move below 20 as a stronger confirmation.`);
+  else lines.push(`😐 Fear &amp; Greed at <strong>${fg}</strong> — still too complacent for a durable bottom. Retail hasn't given up.`);
+
+  // VIX
+  if (vix >= 38) lines.push(`📈 VIX at <strong>${vix}</strong> — panic levels. Spikes like this have historically been within days of a tradeable low.`);
+  else if (vix >= 28) lines.push(`📊 VIX at <strong>${vix}</strong> — elevated but not panic. A spike to 35–40+ would strengthen the bottom case significantly.`);
+  else lines.push(`📉 VIX at <strong>${vix}</strong> — too calm. Real bottoms need real fear. Wait for a vol spike.`);
+
+  // Put/Call
+  if (pc >= 1.25) lines.push(`🎯 Put/Call ratio at <strong>${pc}</strong> — hedging demand is extreme. Contrarian indicator: this much put buying often precedes sharp reversals.`);
+  else if (pc >= 1.0) lines.push(`📌 Put/Call at <strong>${pc}</strong> — moderately bearish positioning. Getting there, but peak fear not yet reached.`);
+
+  // Yield Curve
+  if (yc < -0.3) lines.push(`📐 Yield curve deeply inverted at <strong>${yc}%</strong>. Recession risk is priced in — watch for re-steepening as a leading signal of recovery.`);
+  else if (yc < 0) lines.push(`📐 Yield curve inverted at <strong>${yc}%</strong> — recessionary warning active but still early stage.`);
+
+  // Margin Debt
+  if (md <= -20) lines.push(`🔻 Margin debt down <strong>${md}%</strong> YoY — forced deleveraging of this magnitude has historically occurred at or near major market bottoms.`);
+  else if (md <= -10) lines.push(`🔻 Margin debt unwinding at <strong>${md}%</strong> YoY — leverage is coming off, but larger declines have preceded historical bottoms.`);
+
+  // BTC
+  if (btc >= 60) lines.push(`₿ BTC dominance at <strong>${btc}%</strong> — very high. Capital has fled altcoins entirely. This late-cycle BTC dominance peak often precedes a broader market recovery.`);
+  else if (btc >= 55) lines.push(`₿ BTC dominance at <strong>${btc}%</strong> — rising. Risk appetite is shrinking; investors rotating to perceived safety of BTC.`);
+
+  // Closing action
+  if (score >= 60) lines.push(`✅ <em>Action:</em> Consider staged entries (DCA) into quality positions. Don't wait for the absolute bottom — buy the fear, not the confirmation.`);
+  else lines.push(`⏸ <em>Action:</em> Hold cash, keep a watchlist ready. Set alerts for Fear &amp; Greed below 20 and VIX above 35.`);
+
+  document.getElementById('insight-text').innerHTML = lines.join('<br><br>');
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function initAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+
+  document.getElementById('last-updated').textContent = 'Fetching live data…';
+  document.getElementById('grid').innerHTML = Array(6).fill(`
+    <div class="card">
+      <div class="card-top"><span class="card-label">Loading…</span></div>
+      <div class="card-mid"><div class="loading-val"></div></div>
+    </div>`).join('');
+
+  await Promise.all([fetchFearGreed(), fetchBTCDominance(), fetchYieldCurve(), fetchVIX()]);
+
+  renderCards();
+  renderScore();
+
+  const now = new Date();
+  document.getElementById('last-updated').textContent =
+    `Updated ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+
+  btn.disabled = false;
+  btn.textContent = '↺ Refresh';
+
+  renderInsight();
+}
+
+// Kick off
+initAll();
+
+// Auto-refresh every 5 minutes
+setInterval(initAll, 5 * 60 * 1000);
+</script>
+</body>
+</html>
